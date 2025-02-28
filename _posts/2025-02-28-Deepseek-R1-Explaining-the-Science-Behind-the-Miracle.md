@@ -1,3 +1,10 @@
+---
+layout: post
+title: "Deepseek R1: Explaining the Science Behind the Miracle"
+date: 2025-02-28
+usemathjax: true
+---
+
 # Deepseek R1: Explaining the Science Behind the Miracle
 
 This will be an in-depth, yet intuitive blog on Deepseek R1, covering all the important talking points about it from an AI researcher/engineer’s perspective. This blog is ideal for beginners, students as well as practioners and hobbyists. So strap in!
@@ -20,9 +27,9 @@ Now that we’ve set the background of R1, let’s move on to the technical aspe
 - **State:** the prompt (input tokens)
 - **Action:** which token is selected as the next token
 - **Reward Model:** Rewarded for generating good response, no reward for generating bad response. While negative reward can be given for bad responses, it is sometimes avoided as negative rewards can destabilize the training model and complicates optimization.
-    - **Policy:** Policy is basically what tells the model what to do. For LLMs, the policy is the language model itself as it models the probability of the action space given the current state of the agent. Basically, as the LLM itself produces a probability distribution of the next token, LLM is the policy itself.m
+    - **Policy:** Policy is basically what tells the model what to do. For LLMs, the policy is the language model itself as it models the probability of the action space given the current state of the agent. Basically, as the LLM itself produces a probability distribution of the next token, LLM is the policy itself.
 
-![[https://github.com/hkproj/rlhf-ppo/blob/main/Slides.pdf](https://github.com/hkproj/rlhf-ppo/blob/main/Slides.pdf)](Deepseek R1 Blog/image.png)
+![[https://github.com/hkproj/rlhf-ppo/blob/main/Slides.pdf](https://github.com/hkproj/rlhf-ppo/blob/main/Slides.pdf)](grpo_eqn_deepseek_r1.png)
 
 [https://github.com/hkproj/rlhf-ppo/blob/main/Slides.pdf](https://github.com/hkproj/rlhf-ppo/blob/main/Slides.pdf)
 
@@ -57,9 +64,9 @@ Now that we’ve set the background of R1, let’s move on to the technical aspe
 - Now let’s get a bit technical and jump directly into the gigantic GRPO formula. While it may scare you at first, trust me, by the end of the blog, you’ll have a complete intuitive understanding of the equation and why is it the way it is!
 - The equation for the GRPO algorithm is as follows:
 
-$$
+\\[
 \mathbb{E}_{q \sim P(q)} \mathbb{E}_{\{(o_i)\}_{i=1}^G \sim \pi_{\theta_{old}}(O|q)} \left[ \frac{1}{G} \sum_{i=1}^G \min \left( \frac{\pi_{\theta}(o_i | q)}{\pi_{\theta_{\text{old}}}(o_i | q)} A_i, \, \text{clip} \left( \frac{\pi_{\theta}(o_i | q)}{\pi_{\theta_{\text{old}}}(o_i | q)}, 1 - \varepsilon, 1 + \varepsilon \right) A_i \right) \right] - \beta \, \mathbb{D}_{KL} (\pi_\theta || \pi_{ref})
-$$
+\\]
 
 - While it looks scary and complicated we’ll break it down to make it simpler.
 - Let’s start with our goal. Our goal is to optimize the policy. We want to train the policy $\pi_{\theta}$ to maximize our objective (the equation above).
@@ -68,7 +75,7 @@ $$
 - Let’s say we have a list of questions that belong to a database of questions
     - q ~ P(q)
 - and we sample some outputs from our current policy using these questions. NOTE that we’re **sampling multiple outputs for multiple questions**.
-    - $\{(o_i)\}_{i=1}^G \sim {\pi_{\theta_{old}}} (O | q)$
+    - \\( \{(o_i)\}_{i=1}^G \sim {\pi_{\theta_{old}}} (O | q) \\)
 - Based on the reward the outputs get, we train the LLM to give more weight to (make it more likely to take) those actions that result in good reward and to give less weight to actions that result in bad rewards.
 - Firstly, let’s understand log probabilities:
 - For the query: **Where is Shanghai?**
@@ -129,9 +136,11 @@ $$
     - Training is more stable in GRPO as compared to PPO due to additional measures taken.
     - Significantly faster than PPO, requires fewer iterations (as per the anecdotal evidence provided my multiple labs and research groups).
 - The key difference between them is that PPO required a critic model, so we needed to train another neural network which is computationally intensive as well as time consuming.
-- In GRPO, the advantage terms $A_i$ are calculated using the formula: 
+- In GRPO, the advantage terms \\(A_i\\) are calculated using the formula: 
 
-$$\frac{r_i - \text{mean}(r_1, r_2, ..., r_G)}{\text{standard\_deviation}(r_1, r_2, ..., r_G)}$$ 
+\\[
+\frac{r_i - \text{mean}(r_1, r_2, ..., r_G)}{\text{standard\_deviation}(r_1, r_2, ..., r_G)}
+\\]
 
 where $r_i$ is the reward assigned to the output i and G is the total number of outputs generated. This is a very simple method to calculate Advantage as compared to what PPO uses (a critic neural network), which takes up more time, compute and memory.
 - GRPO ranks the candidate solutions that are generated, indulging in relative ranking of the candidate group.
@@ -142,7 +151,7 @@ where $r_i$ is the reward assigned to the output i and G is the total number of 
 
 ## The ‘aha’ moment in R1-Zero:
 
-![image.png](Deepseek R1 Blog/image%202.png)
+![shanghai_deepseek_r1](aha_moment_deepseek_r1.png)
 
 - In an intermediate version of R1-Zero, the model was given a math problem, and in between it’s thinking process, the model has an ‘aha’ moment, optimizes it’s approach and solves the problem correctly.
 - The thought process of the model here is very human-like, and the model has it’s ‘aha’ moment without being explicitly trained to think in a certain way or solve a math problem in a certain way.
@@ -171,7 +180,7 @@ where $r_i$ is the reward assigned to the output i and G is the total number of 
     <answer> </answer> tags, respectively, i.e., <think> reasoning process here </think>
     <answer> answer here </answer>. User: prompt. Assistant:
 
-![image.png](Deepseek R1 Blog/image%203.png)
+![image.png](grpo_reward_deepseek_r1.png)
 
 - A really intriguing thing that the model learnt during the RL phase in R1-Zero is generating longer responses to solve reasoning tasks, allocating more time to thinking. It learnt to prioritize long term rewards, generate longer sequences of thinking for logical tasks without being explicitly prompted to do it!
 
