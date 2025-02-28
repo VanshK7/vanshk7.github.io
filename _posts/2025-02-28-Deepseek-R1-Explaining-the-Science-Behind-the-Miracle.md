@@ -64,9 +64,11 @@ Now that we’ve set the background of R1, let’s move on to the technical aspe
 - Now let’s get a bit technical and jump directly into the gigantic GRPO formula. While it may scare you at first, trust me, by the end of the blog, you’ll have a complete intuitive understanding of the equation and why is it the way it is!
 - The equation for the GRPO algorithm is as follows:
 
+{% raw %}
 \\[
 \mathbb{E}_{q \sim P(q)} \mathbb{E}_{\{(o_i)\}_{i=1}^G \sim \pi_{\theta_{old}}(O|q)} \left[ \frac{1}{G} \sum_{i=1}^G \min \left( \frac{\pi_{\theta}(o_i | q)}{\pi_{\theta_{\text{old}}}(o_i | q)} A_i, \, \text{clip} \left( \frac{\pi_{\theta}(o_i | q)}{\pi_{\theta_{\text{old}}}(o_i | q)}, 1 - \varepsilon, 1 + \varepsilon \right) A_i \right) \right] - \beta \, \mathbb{D}_{KL} (\pi_\theta || \pi_{ref})
 \\]
+{% endraw %}
 
 - While it looks scary and complicated we’ll break it down to make it simpler.
 - Let’s start with our goal. Our goal is to optimize the policy. We want to train the policy $\pi_{\theta}$ to maximize our objective (the equation above).
@@ -138,9 +140,11 @@ Now that we’ve set the background of R1, let’s move on to the technical aspe
 - The key difference between them is that PPO required a critic model, so we needed to train another neural network which is computationally intensive as well as time consuming.
 - In GRPO, the advantage terms \\(A_i\\) are calculated using the formula: 
 
-\\[
+{% raw %}
+\\[ 
 \frac{r_i - \text{mean}(r_1, r_2, ..., r_G)}{\text{standard\_deviation}(r_1, r_2, ..., r_G)}
 \\]
+{% endraw %}
 
 where $r_i$ is the reward assigned to the output i and G is the total number of outputs generated. This is a very simple method to calculate Advantage as compared to what PPO uses (a critic neural network), which takes up more time, compute and memory.
 - GRPO ranks the candidate solutions that are generated, indulging in relative ranking of the candidate group.
