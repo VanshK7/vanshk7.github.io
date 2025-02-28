@@ -99,7 +99,7 @@ $$o_i \sim \pi_{\theta}(q)$$
 - Let’s sum up what we’ve learnt about the formula till now:
     - For a group of questions, and multiple answers for each question, and for each answer we have log probabilities associated with this answer ( which is basically equals to the product of all the probabilities of choosing that particular token given that particular input). We weigh each of the log probability with the Advantage term ( which tells us how good is choosing this particular token as compared token over all the other that are available for this particular input).
     - It may seem a bit overwhelming initially so you may want to read it twice or thrice to ingest the info completely before moving forward.
-- The ratio {% raw %}
+- The ratio {% raw %} probability that the o
 $$\frac{\pi_{\theta}(o_i|q)}{\pi_{\theta_{old}}(o_i|q)}$$
 {% endraw %} represents the *relative change* in the probability of taking that output $o_i$between the old and current policies.
     - If the ratio is greater than 1, it means the current policy is more likely to generate that output.
