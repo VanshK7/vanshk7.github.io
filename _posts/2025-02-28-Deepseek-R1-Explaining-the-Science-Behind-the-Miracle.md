@@ -2,6 +2,8 @@
 layout: post
 title: "Deepseek R1: Explaining the Science Behind the Miracle"
 date: 2025-02-28
+categories: [AI, Machine Learning]
+tags: [deepseek, llm, reinforcement-learning, ai-research]
 usemathjax: true
 ---
 
@@ -29,7 +31,7 @@ Now that we’ve set the background of R1, let’s move on to the technical aspe
 - **Reward Model:** Rewarded for generating good response, no reward for generating bad response. While negative reward can be given for bad responses, it is sometimes avoided as negative rewards can destabilize the training model and complicates optimization.
     - **Policy:** Policy is basically what tells the model what to do. For LLMs, the policy is the language model itself as it models the probability of the action space given the current state of the agent. Basically, as the LLM itself produces a probability distribution of the next token, LLM is the policy itself.
 
-![[https://github.com/hkproj/rlhf-ppo/blob/main/Slides.pdf](https://github.com/hkproj/rlhf-ppo/blob/main/Slides.pdf)](grpo_eqn_deepseek_r1.png)
+![RL Diagram]({{ site.baseurl }}/assets/images/deepseek/rl-diagram.png)
 
 [https://github.com/hkproj/rlhf-ppo/blob/main/Slides.pdf](https://github.com/hkproj/rlhf-ppo/blob/main/Slides.pdf)
 
@@ -64,11 +66,7 @@ Now that we’ve set the background of R1, let’s move on to the technical aspe
 - Now let’s get a bit technical and jump directly into the gigantic GRPO formula. While it may scare you at first, trust me, by the end of the blog, you’ll have a complete intuitive understanding of the equation and why is it the way it is!
 - The equation for the GRPO algorithm is as follows:
 
-{% raw %}
-\\[
-\mathbb{E}_{q \sim P(q)} \mathbb{E}_{\{(o_i)\}_{i=1}^G \sim \pi_{\theta_{old}}(O|q)} \left[ \frac{1}{G} \sum_{i=1}^G \min \left( \frac{\pi_{\theta}(o_i | q)}{\pi_{\theta_{\text{old}}}(o_i | q)} A_i, \, \text{clip} \left( \frac{\pi_{\theta}(o_i | q)}{\pi_{\theta_{\text{old}}}(o_i | q)}, 1 - \varepsilon, 1 + \varepsilon \right) A_i \right) \right] - \beta \, \mathbb{D}_{KL} (\pi_\theta || \pi_{ref})
-\\]
-{% endraw %}
+![GRPO Formula]({{ site.baseurl }}/assets/images/deepseek/grpo-formula.png)
 
 - While it looks scary and complicated we’ll break it down to make it simpler.
 - Let’s start with our goal. Our goal is to optimize the policy. We want to train the policy $\pi_{\theta}$ to maximize our objective (the equation above).
@@ -77,47 +75,48 @@ Now that we’ve set the background of R1, let’s move on to the technical aspe
 - Let’s say we have a list of questions that belong to a database of questions
     - q ~ P(q)
 - and we sample some outputs from our current policy using these questions. NOTE that we’re **sampling multiple outputs for multiple questions**.
-    - \\( \{(o_i)\}_{i=1}^G \sim {\pi_{\theta_{old}}} (O | q) \\)
+    - $${{(o_i)}\_{i=1}^G} \sim {\pi\_{\theta\_{old}}} (O | q)$$
 - Based on the reward the outputs get, we train the LLM to give more weight to (make it more likely to take) those actions that result in good reward and to give less weight to actions that result in bad rewards.
 - Firstly, let’s understand log probabilities:
 - For the query: **Where is Shanghai?**
 - Consider the answers:
     - Shanghai is in China.
     - The sky is blue.
-    - I am very smart
+    - I am very smart’
 - There’s log probabilities associated with each word (e.g. Shanghai, The, great, etc. for the query ‘Where is Shanghai?’
 - For ‘Where is Shanghai’, say we have log probabilities for the words:
     - Shanghai, The and I.
 - Then, for ‘Where is Shanghai? Shanghai’, there’s log probabilities for the words:
     - is, and, was, etc.
 - and so on for all the words…
-- $\pi_{\theta_{old}} (o_i | q)$ is the old (previous) policy and $\pi_{\theta} (o_i | q)$ is the new (current) policy.
+- $π_{θ_{old}}(o_i|q)$ is the probability that the *old* policy (from the previous training iteration), parameterized by θ_old, would produce the same output o_i given the same input q.
+- **$\pi_{\theta_{old}} (o_i | q)$ is the old (previous) policy and $\pi_{\theta} (o_i | q)$ is the new (current) policy.**
 - $\pi_{\theta} (o_i | q)$ is the product of all the log probabilities generated at each step $O_i$. Each log probability is weighted by Advantage $A_i$.
 - Advantage $A_i$ basically tells how much better is choosing a particular token given a particular input over all possible tokens.
     - For ‘Where is Shanghai?’, Shanghai would have a better Advantage value than, say, sky or pizza’.
 - Let’s sum up what we’ve learnt about the formula till now:
     - For a group of questions, and multiple answers for each question, and for each answer we have log probabilities associated with this answer ( which is basically equals to the product of all the probabilities of choosing that particular token given that particular input). We weigh each of the log probability with the Advantage term ( which tells us how good is choosing this particular token as compared token over all the other that are available for this particular input).
     - It may seem a bit overwhelming initially so you may want to read it twice or thrice to ingest the info completely before moving forward.
-- The ratio $\frac{\pi_\theta(O_i|q)}{\pi_{\theta_{old}}(O_i|q)}$ represents the *relative change* in the probability of taking that output $o_i$between the old and current policies.
+- The ratio $$\frac{\pi\_\theta(O_i|q)}{\pi\_{\theta\_old}(O_i|q)}$$ represents the *relative change* in the probability of taking that output $o_i$between the old and current policies.
     - If the ratio is greater than 1, it means the current policy is more likely to generate that output.
     - If the ratio is less than 1, it means the old policy is more likely to generate that output.
     - A ratio close to 1 suggests the policies are similar for that output.
-- Now moving on to the ‘clip’ part of the equation:  $\text{clip} \left(\frac{\pi_\theta(O_i|q)}{\pi_{\theta_{old}}(O_i|q)}, 1-\epsilon, 1+\epsilon\right) A_i$.
+- Now moving on to the ‘clip’ part of the equation:  $$\text{clip} \left(\frac{\pi\_\theta(O_i|q)}{\pi\_{\theta\_{old}}(O_i|q)}, 1-\epsilon, 1+\epsilon\right) A_i$$.
 - The aim of ‘clip’ is to make training more stable and ensure that the policy doesn’t change too much in each iteration.
 - As the name suggests, it basically ‘clips’ or limits the value of how much better or worse the next token is in this policy as compared to the previous policy, in turn, restricting how much the policy changes in each iteration.
-- Let ratio = $\frac{\pi_\theta(O_i|q)}{\pi_{\theta_{old}}(O_i|q)}$, then, the ‘clip’ part of the equation becomes:
-    - $\text{clip} (ratio, 1-\epsilon, 1+\epsilon)\;A_i$
+- Let ratio = $$\frac{π_θ(O_i|q)}{π_{θ_old}(O_i|q)}$$, then, the ‘clip’ part of the equation becomes:
+    - $$\text{clip} (ratio, 1-\epsilon, 1+\epsilon)\;A_i$$
 - Clip is a function which outputs:
     - $1 + \epsilon$ if ratio > $1 + \epsilon$
-    - $1-\epsilon$ if ratio < $1-\epsilon$
+    - $1-e$ if ratio < $1-\epsilon$
     - ratio if ratio is between $1-\epsilon$ and $1+\epsilon$
 - Here, $\epsilon$ is a small hyperparameter, like 0.1 or 0.2.
 - What this does is that it limits the ratio to be between $1-\epsilon$ and $1+\epsilon$. So even if a particular output token is significantly better than the rest, it will be clipped at a max value of $1+\epsilon$ and even if an output token is significantly worse, it is clipped at a minimum value of $1-\epsilon$.
 - This value is then multiplied by the Advantage $A_i$ to form the new clipped value.
 - The reason it does this is to enable more stable and conservative training, avoiding aggressive policy updates which may wash out the model’s learnings and lead to slower generalization and more bias.
-- Now we can understand the key chunk of the equation: $\min \left( \frac{\pi_{\theta}(o_i | q)}{\pi_{\theta_{\text{old}}}(o_i | q)} A_i, \, \text{clip} \left( \frac{\pi_{\theta}(o_i | q)}{\pi_{\theta_{\text{old}}}(o_i | q)}, 1 - \varepsilon, 1 + \varepsilon \right) A_i \right)$
+- Now we can understand the key chunk of the equation: $$\min \left( \frac{\pi\_{\theta}(o_i | q)}{\pi\_{\theta\_{\text{old}}}(o_i | q)} A_i, \, \text{clip} \left( \frac{\pi\_{\theta}(o_i | q)}{\pi\_{\theta\_{\text{old}}}(o_i | q)}, 1 - \varepsilon, 1 + \varepsilon \right) A_i \right)$$
 - To sum up, we take the minimum value between $ratio * Advantage$ and the clipped value multiplied by the Advantage for more stable training and less aggressive updates (to decrease bias and help generalize quicker).
-- Now turning our focus onto another key part of the equation the KL-divergence: $\beta \; \mathbb{D}_{KL} (\pi_\theta || \pi_{ref})$. It tells us how different 2 distributions are, or how far they are from each other.
+- Now turning our focus onto another key part of the equation the KL-divergence: $$\beta \; \mathbb{D}\_{KL} (\pi\_\theta || \pi\_{ref})$$. It tells us how different 2 distributions are, or how far they are from each other.
 - The aim of the KL-Divergence here is to reduce the difference between the current policy and the previous policy, to ensure that the training is stable and the changes are not too drastic.
 - Just like some houses have 2 doors with 2 locks for extra protection, this equation has 2 locks (clip and KL-divergence) to ensure that the changes are not too drastic.
 - $\beta$ is a positive hyperparameter which controls the strength of the KL-penalty. Higher $\beta$ means higher higher KL-penalty.
@@ -138,24 +137,15 @@ Now that we’ve set the background of R1, let’s move on to the technical aspe
     - Training is more stable in GRPO as compared to PPO due to additional measures taken.
     - Significantly faster than PPO, requires fewer iterations (as per the anecdotal evidence provided my multiple labs and research groups).
 - The key difference between them is that PPO required a critic model, so we needed to train another neural network which is computationally intensive as well as time consuming.
-- In GRPO, the advantage terms \\(A_i\\) are calculated using the formula: 
-
-{% raw %}
-\\[ 
-\frac{r_i - \text{mean}(r_1, r_2, ..., r_G)}{\text{standard\_deviation}(r_1, r_2, ..., r_G)}
-\\]
-{% endraw %}
-
-where $r_i$ is the reward assigned to the output i and G is the total number of outputs generated. This is a very simple method to calculate Advantage as compared to what PPO uses (a critic neural network), which takes up more time, compute and memory.
+- In GRPO, the advantage terms $A_i$ are calculated using the formula: $$A_i = \frac{r_i-\text{mean}(r_1, r_2, ..., r_G)}{\text{std}(r_1, r_2, ..., r_G)}$$ where $r_i$ is the reward assigned to the output i and G is the total number of outputs generated. This is a very simple method to calculate Advantage as compared to what PPO uses (a critic neural network), which takes up more time, compute and memory.
 - GRPO ranks the candidate solutions that are generated, indulging in relative ranking of the candidate group.
 - So GRPO basically sacks the critic neural network in favour of the simple Advantage calculation
 - GRPO also introduces KL-divergence directly into the loss function which stabilizes training.
 
 - Now that we’ve understood the equation, let’s checkout an astonishing result, and one of the other major talking point of the paper, the ‘aha’ moment.
-
 ## The ‘aha’ moment in R1-Zero:
 
-![shanghai_deepseek_r1](aha_moment_deepseek_r1.png)
+![Aha Moment]({{ site.baseurl }}/assets/images/deepseek/aha-moment.png)
 
 - In an intermediate version of R1-Zero, the model was given a math problem, and in between it’s thinking process, the model has an ‘aha’ moment, optimizes it’s approach and solves the problem correctly.
 - The thought process of the model here is very human-like, and the model has it’s ‘aha’ moment without being explicitly trained to think in a certain way or solve a math problem in a certain way.
@@ -184,7 +174,7 @@ where $r_i$ is the reward assigned to the output i and G is the total number of 
     <answer> </answer> tags, respectively, i.e., <think> reasoning process here </think>
     <answer> answer here </answer>. User: prompt. Assistant:
 
-![image.png](grpo_reward_deepseek_r1.png)
+![Template Example]({{ site.baseurl }}/assets/images/deepseek/template-example.png)
 
 - A really intriguing thing that the model learnt during the RL phase in R1-Zero is generating longer responses to solve reasoning tasks, allocating more time to thinking. It learnt to prioritize long term rewards, generate longer sequences of thinking for logical tasks without being explicitly prompted to do it!
 
